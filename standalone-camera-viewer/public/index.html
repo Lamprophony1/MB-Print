@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Standalone MakerBot Camera Viewer</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    .row { margin-bottom: 10px; }
+    input, select, button { padding: 6px; }
+    img { margin-top: 10px; max-width: 100%; border: 1px solid #ccc; }
+    code { background: #f4f4f4; padding: 2px 4px; }
+    pre { background: #111; color: #0f0; padding: 10px; max-height: 240px; overflow: auto; }
+  </style>
+</head>
+<body>
+  <h1>Standalone Camera Viewer (real printer)</h1>
+  <p>Flujo: <code>connectByIp</code> → <code>authenticate</code> → <code>startCamera</code>.</p>
+
+  <div class="row">
+    <label>IP:</label>
+    <input id="ip" value="192.168.1.30" />
+    <button id="connectBtn">1) Connect</button>
+  </div>
+
+  <div class="row">
+    <label>UID:</label>
+    <input id="uid" placeholder="se completa al conectar" style="width: 320px;" />
+    <button id="authBtn">2) Authenticate</button>
+  </div>
+
+  <div class="row">
+    <label>Encoding:</label>
+    <select id="encoding">
+      <option value="base64">base64</option>
+      <option value="binary">binary</option>
+    </select>
+    <button id="startBtn">3) Start camera</button>
+    <button id="stopBtn">Stop camera</button>
+  </div>
+
+  <div class="row">
+    <strong>State:</strong> <span id="state">-</span>
+  </div>
+
+  <img id="frame" alt="camera frame" />
+
+  <h3>Log</h3>
+  <pre id="log"></pre>
+
+  <script>
+    const log = (msg) => {
+      const el = document.getElementById('log');
+      el.textContent += msg + '\n';
+      el.scrollTop = el.scrollHeight;
+    };
+
+    const post = async (url, body) => {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body || {})
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        throw new Error(json.error || 'request failed');
+      }
+      return json;
+    };
+
+    let evtSource = null;
+
+    document.getElementById('connectBtn').onclick = async () => {
+      try {
+        const ip = document.getElementById('ip').value.trim();
+        const data = await post('/api/connectByIp', { ip });
+        document.getElementById('uid').value = data.uid;
+        document.getElementById('state').textContent = data.state;
+        log('connectByIp: ' + JSON.stringify(data));
+      } catch (err) {
+        log('ERROR connect: ' + err.message);
+      }
+    };
+
+    document.getElementById('authBtn').onclick = async () => {
+      try {
+        const uid = document.getElementById('uid').value.trim();
+        const data = await post('/api/authenticate', { uid });
+        document.getElementById('state').textContent = data.state;
+        log('authenticate: ' + JSON.stringify(data));
+      } catch (err) {
+        log('ERROR authenticate: ' + err.message);
+      }
+    };
+
+    document.getElementById('startBtn').onclick = async () => {
+      try {
+        const uid = document.getElementById('uid').value.trim();
+        const encoding = document.getElementById('encoding').value;
+        const data = await post('/api/startCamera', { uid, encoding });
+        log('startCamera: ' + JSON.stringify(data));
+
+        if (evtSource) evtSource.close();
+        evtSource = new EventSource('/api/camera/stream/' + encodeURIComponent(uid));
+
+        evtSource.addEventListener('frame', (event) => {
+          const payload = JSON.parse(event.data);
+          const img = document.getElementById('frame');
+          img.src = payload.frame.startsWith('data:image') ? payload.frame : ('data:image/jpeg;base64,' + payload.frame);
+        });
+
+        evtSource.onerror = () => {
+          log('SSE stream disconnected');
+        };
+      } catch (err) {
+        log('ERROR startCamera: ' + err.message);
+      }
+    };
+
+    document.getElementById('stopBtn').onclick = async () => {
+      try {
+        const uid = document.getElementById('uid').value.trim();
+        const data = await post('/api/stopCamera', { uid });
+        log('stopCamera: ' + JSON.stringify(data));
+        if (evtSource) {
+          evtSource.close();
+          evtSource = null;
+        }
+      } catch (err) {
+        log('ERROR stopCamera: ' + err.message);
+      }
+    };
+  </script>
+</body>
+</html>
