@@ -94,15 +94,23 @@ function loadCroissant() {
       throw new Error(
         `Croissant native module ABI mismatch. Tu runtime Node no coincide con el binario croissantjs.node.
 `
-        + `Usá el runtime legacy (NODE_MODULE_VERSION 48) con:
+        + `Comandos válidos:
 `
-        + `  1) cd standalone-camera-viewer
+        + `  Opción A (desde repo root): npm --prefix standalone-camera-viewer run start:legacy-win
 `
-        + `  2) npm install
+        + `  Opción B (entrando a la carpeta):
 `
-        + `  3) npm run start:legacy-win (Windows)
+        + `    1) cd standalone-camera-viewer
 `
-        + `     o npm run start:legacy-unix (Linux/macOS)
+        + `    2) npm install
+`
+        + `    3) npm run start:legacy-win (Windows)
+`
+        + `       o npm run start:legacy-unix (Linux/macOS)
+`
+        + `No ejecutes luego "node standalone-camera-viewer/server.js" desde dentro de standalone-camera-viewer,
+`
+        + `porque eso duplica la ruta y falla con MODULE_NOT_FOUND.
 `
         + `Detalle original: ${msg}`
       );
@@ -285,7 +293,12 @@ async function main() {
       if (req.method === 'GET' && req.url === '/api/health') {
         sendJson(res, 200, {
           ok: true,
-          croissantModulePath: CROISSANT_MODULE_PATH
+          croissantModulePath: CROISSANT_MODULE_PATH,
+          runtime: {
+            node: process.versions.node,
+            modules: process.versions.modules,
+            electron: process.versions.electron || null
+          }
         });
         return;
       }

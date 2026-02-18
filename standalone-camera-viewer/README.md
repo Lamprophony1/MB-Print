@@ -27,8 +27,16 @@ Si no se define `CROISSANT_MODULE_PATH`, usa por defecto el del repo:
 
 ## Ejecutar
 
+Desde **repo root**:
+
 ```bash
 node standalone-camera-viewer/server.js
+```
+
+Desde la carpeta `standalone-camera-viewer`:
+
+```bash
+node server.js
 ```
 
 Con ruta explícita al croissant de tu instalación Windows:
@@ -117,6 +125,32 @@ significa que estás ejecutando con un Node moderno y el binario nativo de Crois
    npm run start:legacy-unix
    ```
 
+   Alternativa desde repo root (sin hacer `cd`):
+   ```bash
+   npm --prefix standalone-camera-viewer run start:legacy-win
+   ```
+
 4. En navegador abrí `http://127.0.0.1:6060` y corré primero **Health check**.
 
+5. Verificá en el JSON de `/api/health` el campo `runtime.modules`:
+   - Si usás Node moderno vas a ver algo como `137`.
+   - Para Croissant ABI viejo necesitás runtime compatible con `48`.
+
 > Nota: esto mantiene la app independiente; no hace falta reemplazar DLL/EXE de MakerBot.
+
+
+### Error de ruta común
+
+Si ya estás en `standalone-camera-viewer`, **no** corras:
+
+```bash
+node standalone-camera-viewer/server.js
+```
+
+porque busca una ruta duplicada (`.../standalone-camera-viewer/standalone-camera-viewer/server.js`).
+
+En ese caso el comando correcto es:
+
+```bash
+node server.js
+```
