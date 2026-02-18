@@ -8,7 +8,9 @@ const PORT = Number(process.env.PORT || 6060);
 const HOST = process.env.HOST || '127.0.0.1';
 const CROISSANT_MODULE_PATH = process.env.CROISSANT_MODULE_PATH || path.resolve(__dirname, '..', 'resources', 'app.asar.unpacked', 'node_modules', 'MB-support-plugin', 'lib', 'croissant.js');
 const FINDER_USERNAME = process.env.FINDER_USERNAME || 'ANON';
-const FINDER_CLIENT_SECRET = process.env.FINDER_CLIENT_SECRET || null;
+// Same public client secret used by MB-support-plugin Thingiverse auth flow
+const DEFAULT_FINDER_CLIENT_SECRET = 'c30f532bcc67bb65d3476daedc0e60f4';
+const FINDER_CLIENT_SECRET = process.env.FINDER_CLIENT_SECRET || DEFAULT_FINDER_CLIENT_SECRET;
 
 const stateEnum = {
   Offline: 'Offline',
@@ -343,7 +345,14 @@ function main() {
             state: entry.state,
             hasAuthInfo: !!entry.authInfo
           });
-        }).catch(fail);
+        }).catch(err => {
+          const msg = String(err && err.message || err || '');
+          if (msg.includes('Neither thingiverse token nor client secret set')) {
+            fail(new Error('Neither thingiverse token nor client secret set. Verificá FINDER_CLIENT_SECRET (o dejalo por default en este server) y reiniciá.'));
+            return;
+          }
+          fail(err);
+        });
         return;
       }
 

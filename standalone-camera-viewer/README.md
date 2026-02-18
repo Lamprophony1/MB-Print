@@ -21,7 +21,7 @@ Esta app es **independiente**. No modifica `MB-support-plugin` ni requiere copia
 - `HOST` (default `127.0.0.1`)
 - `CROISSANT_MODULE_PATH` (ruta al `croissant.js` real)
 - `FINDER_USERNAME` (default `ANON`; requerido por el flujo de auth nuevo)
-- `FINDER_CLIENT_SECRET` (opcional; si tu flujo lo necesita)
+- `FINDER_CLIENT_SECRET` (opcional; por default usa el mismo client secret de MB-support-plugin)
 
 Si no se define `CROISSANT_MODULE_PATH`, usa por defecto el del repo:
 
@@ -112,6 +112,14 @@ node .\standalone-camera-viewer\server.js
 ```
 
 
+
+## Client secret por default
+
+Este viewer ya arranca con un client secret por default (el mismo que usa MB-support-plugin):
+
+- `c30f532bcc67bb65d3476daedc0e60f4`
+
+Si querés forzar otro, seteá `FINDER_CLIENT_SECRET` antes de iniciar el server.
 
 ## Error específico: `Username not set`
 
