@@ -10,12 +10,18 @@
     input, select, button { padding: 6px; }
     img { margin-top: 10px; max-width: 100%; border: 1px solid #ccc; }
     code { background: #f4f4f4; padding: 2px 4px; }
-    pre { background: #111; color: #0f0; padding: 10px; max-height: 240px; overflow: auto; }
+    pre { background: #111; color: #0f0; padding: 10px; max-height: 260px; overflow: auto; }
   </style>
 </head>
 <body>
   <h1>Standalone Camera Viewer (real printer)</h1>
-  <p>Flujo: <code>connectByIp</code> → <code>authenticate</code> → <code>startCamera</code>.</p>
+  <p>Flujo: <code>Health</code> → <code>connectByIp</code> → <code>authenticate</code> → <code>startCamera</code>.</p>
+
+  <div class="row">
+    <label>API Base URL:</label>
+    <input id="apiBase" style="width: 360px;" />
+    <button id="healthBtn">Health check</button>
+  </div>
 
   <div class="row">
     <label>IP:</label>
@@ -49,26 +55,75 @@
   <pre id="log"></pre>
 
   <script>
+    const initialApiBase = (location.protocol === 'http:' || location.protocol === 'https:')
+      ? location.origin
+      : 'http://127.0.0.1:6060';
+
+    document.getElementById('apiBase').value = initialApiBase;
+
     const log = (msg) => {
       const el = document.getElementById('log');
       el.textContent += msg + '\n';
       el.scrollTop = el.scrollHeight;
     };
 
-    const post = async (url, body) => {
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body || {})
-      });
-      const json = await res.json();
-      if (!res.ok) {
-        throw new Error(json.error || 'request failed');
+    const apiBase = () => document.getElementById('apiBase').value.trim().replace(/\/$/, '');
+
+    const post = async (path, body) => {
+      const url = `${apiBase()}${path}`;
+      let res;
+
+      try {
+        res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body || {})
+        });
+      } catch (err) {
+        throw new Error(`No se pudo conectar a ${url}. Verificá que el server esté corriendo y que API Base URL sea correcta. Detalle: ${err.message}`);
       }
+
+      const text = await res.text();
+      let json;
+
+      try {
+        json = text ? JSON.parse(text) : {};
+      } catch (err) {
+        throw new Error(`Respuesta inválida de ${url}: ${text.slice(0, 200)}`);
+      }
+
+      if (!res.ok) {
+        throw new Error(json.error || `HTTP ${res.status}`);
+      }
+
+      return json;
+    };
+
+    const getJson = async (path) => {
+      const url = `${apiBase()}${path}`;
+      let res;
+
+      try {
+        res = await fetch(url);
+      } catch (err) {
+        throw new Error(`No se pudo conectar a ${url}. Verificá server/API base. Detalle: ${err.message}`);
+      }
+
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || `HTTP ${res.status}`);
       return json;
     };
 
     let evtSource = null;
+
+    document.getElementById('healthBtn').onclick = async () => {
+      try {
+        const data = await getJson('/api/health');
+        log('health: ' + JSON.stringify(data));
+      } catch (err) {
+        log('ERROR health: ' + err.message);
+      }
+    };
 
     document.getElementById('connectBtn').onclick = async () => {
       try {
@@ -101,7 +156,8 @@
         log('startCamera: ' + JSON.stringify(data));
 
         if (evtSource) evtSource.close();
-        evtSource = new EventSource('/api/camera/stream/' + encodeURIComponent(uid));
+        const sseUrl = `${apiBase()}/api/camera/stream/${encodeURIComponent(uid)}`;
+        evtSource = new EventSource(sseUrl);
 
         evtSource.addEventListener('frame', (event) => {
           const payload = JSON.parse(event.data);
@@ -110,7 +166,7 @@
         });
 
         evtSource.onerror = () => {
-          log('SSE stream disconnected');
+          log('SSE stream disconnected (verificá URL/base/network).');
         };
       } catch (err) {
         log('ERROR startCamera: ' + err.message);

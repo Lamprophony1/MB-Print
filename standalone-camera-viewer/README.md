@@ -58,3 +58,29 @@ Abrir en navegador:
 
 - Esta app está diseñada para experimentar con ingeniería inversa de forma aislada.
 - Si tu instalación de MakerBot quedó dañada (0xc000012f), primero reinstalá limpio y no vuelvas a copiar binarios (`node.dll`, `ffmpeg.dll`, `.exe`) desde este repo.
+
+
+## Troubleshooting: "ERROR ... Failed to fetch"
+
+Si en la UI ves `ERROR connect: Failed to fetch` o similares:
+
+1. Ejecutá primero health desde terminal:
+   ```bash
+   curl http://127.0.0.1:6060/api/health
+   ```
+2. En la UI, configurá **API Base URL** correcta (ejemplo `http://127.0.0.1:6060`).
+3. No abras `index.html` como archivo suelto (`file://...`) sin API Base correcta.
+4. Si corrés server en otra máquina/VM, iniciá con `HOST=0.0.0.0` y usá IP real de esa máquina en API Base URL.
+5. Verificá firewall/antivirus bloqueando el puerto.
+
+Ejemplo (Linux/macOS):
+```bash
+HOST=0.0.0.0 PORT=6060 node standalone-camera-viewer/server.js
+```
+
+Ejemplo (PowerShell):
+```powershell
+$env:HOST='0.0.0.0'
+$env:PORT='6060'
+node .\standalone-camera-viewer\server.js
+```

@@ -44,7 +44,10 @@ function sendJson(res, statusCode, payload) {
   const body = JSON.stringify(payload);
   res.writeHead(statusCode, {
     'Content-Type': 'application/json; charset=utf-8',
-    'Content-Length': Buffer.byteLength(body)
+    'Content-Length': Buffer.byteLength(body),
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type'
   });
   res.end(body);
 }
@@ -231,7 +234,8 @@ async function main() {
 
     res.writeHead(200, {
       'Content-Type': contentType,
-      'Content-Length': file.length
+      'Content-Length': file.length,
+      'Access-Control-Allow-Origin': '*'
     });
 
     res.end(file);
@@ -240,6 +244,17 @@ async function main() {
 
   const server = http.createServer(async (req, res) => {
     try {
+
+      if (req.method === 'OPTIONS') {
+        res.writeHead(204, {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type'
+        });
+        res.end();
+        return;
+      }
+
       if (routeStatic(req, res)) return;
 
       if (req.method === 'GET' && req.url === '/api/health') {
@@ -314,7 +329,8 @@ async function main() {
         res.writeHead(200, {
           'Content-Type': 'text/event-stream',
           'Cache-Control': 'no-cache',
-          Connection: 'keep-alive'
+          Connection: 'keep-alive',
+          'Access-Control-Allow-Origin': '*'
         });
 
         res.write('\n');
