@@ -56,12 +56,47 @@ function sendJson(res, statusCode, payload) {
   res.end(body);
 }
 
+function looksLikePrinter(candidate) {
+  if (!candidate || typeof candidate !== 'object') return false;
+
+  return typeof candidate.setCameraFrameNotification === 'function'
+    || typeof candidate.RequestCameraStream === 'function'
+    || typeof candidate.EndCameraStream === 'function';
+}
+
 function normalizeConnectResult(connectResult) {
   if (Array.isArray(connectResult)) {
+    const first = connectResult[0] || null;
+    const second = connectResult[1] || null;
+
+    if (looksLikePrinter(first)) {
+      return { printer: first, authInfo: second };
+    }
+
+    if (looksLikePrinter(second)) {
+      return { printer: second, authInfo: first };
+    }
+
     return {
-      printer: connectResult[0] || null,
-      authInfo: connectResult[1] || null
+      printer: first,
+      authInfo: second
     };
+  }
+
+  if (connectResult && typeof connectResult === 'object') {
+    if (looksLikePrinter(connectResult.printer)) {
+      return {
+        printer: connectResult.printer,
+        authInfo: connectResult.authInfo || connectResult.auth_info || null
+      };
+    }
+
+    if (looksLikePrinter(connectResult.connection)) {
+      return {
+        printer: connectResult.connection,
+        authInfo: connectResult.authInfo || connectResult.auth_info || null
+      };
+    }
   }
 
   return {
@@ -220,6 +255,11 @@ function main() {
 
     if (!entry.printer) {
       return Promise.reject(new Error('Printer is not authenticated yet. Call /api/authenticate first.'));
+    }
+
+    if (typeof entry.printer.setCameraFrameNotification !== 'function') {
+      const availableKeys = Object.keys(entry.printer || {}).slice(0, 30).join(', ');
+      return Promise.reject(new Error(`Connected object is not a camera-capable printer. Available keys: ${availableKeys}`));
     }
 
     entry.cameraEncoding = resolvedEncoding === 'binary' ? 'binary' : 'base64';
