@@ -8,6 +8,7 @@ Esta app es **independiente**. No modifica `MB-support-plugin` ni requiere copia
 - Autentica (`connectPrinter` / opcional `reconnectPrinter`).
 - Inicia stream de cámara (`setCameraFrameNotification` + `RequestCameraStream`).
 - Muestra frames en navegador en tiempo real (SSE).
+- Auto-reauth al reconectar por IP si hay `authInfo` persistida en disco.
 
 ## Requisitos
 
@@ -22,6 +23,7 @@ Esta app es **independiente**. No modifica `MB-support-plugin` ni requiere copia
 - `CROISSANT_MODULE_PATH` (ruta al `croissant.js` real)
 - `FINDER_USERNAME` (default `ANON`; requerido por el flujo de auth nuevo)
 - `FINDER_CLIENT_SECRET` (opcional; por default usa el mismo client secret de MB-support-plugin)
+- `AUTH_STORE_PATH` (ruta del archivo JSON para persistir `authInfo`; default `standalone-camera-viewer/.auth-store.json`)
 
 Si no se define `CROISSANT_MODULE_PATH`, usa por defecto el del repo:
 
@@ -134,6 +136,19 @@ npm run start:makerbot-win
 
 Podés verificarlo en `GET /api/health` en el campo `authContext.username`.
 
+
+
+## Persistencia de auth entre recargas
+
+Ahora el server guarda `authInfo` por `uid` en un JSON local y, al hacer `connectByIp`, intenta `reauth` automáticamente.
+
+- Archivo default: `standalone-camera-viewer/.auth-store.json`
+- Verificación rápida: `GET /api/health` -> `persistence.authEntries`
+
+Si vuelve a `Unauthenticated` después de recargar:
+- Puede que la impresora haya rechazado/revocado el `authInfo` previo.
+- Hacé `Authenticate` nuevamente para regenerar credenciales.
+- Confirmá que el proceso tiene permisos de escritura sobre `AUTH_STORE_PATH`.
 
 ## Error específico: `AuthRejectedError`
 

@@ -11,6 +11,26 @@ const FINDER_USERNAME = process.env.FINDER_USERNAME || 'ANON';
 // Same public client secret used by MB-support-plugin Thingiverse auth flow
 const DEFAULT_FINDER_CLIENT_SECRET = 'c30f532bcc67bb65d3476daedc0e60f4';
 const FINDER_CLIENT_SECRET = process.env.FINDER_CLIENT_SECRET || DEFAULT_FINDER_CLIENT_SECRET;
+const AUTH_STORE_PATH = process.env.AUTH_STORE_PATH || path.resolve(__dirname, '.auth-store.json');
+
+
+function readAuthStore() {
+  try {
+    if (!fs.existsSync(AUTH_STORE_PATH)) return {};
+    const raw = fs.readFileSync(AUTH_STORE_PATH, 'utf8');
+    return raw ? JSON.parse(raw) : {};
+  } catch (err) {
+    return {};
+  }
+}
+
+function writeAuthStore(store) {
+  try {
+    fs.writeFileSync(AUTH_STORE_PATH, JSON.stringify(store, null, 2));
+  } catch (err) {
+    // non-fatal: keep runtime working even if persistence fails
+  }
+}
 
 const stateEnum = {
   Offline: 'Offline',
@@ -212,6 +232,7 @@ function main() {
 
   const printers = new Map();
   const sseClientsByUid = new Map();
+  const authStore = readAuthStore();
 
   function getEntryOrThrow(uid) {
     const entry = printers.get(uid);
@@ -240,6 +261,7 @@ function main() {
 
     return Promise.resolve(getFinder().findByIp(ip)).then(printerInfo => {
       const uid = printerInfo.uid;
+      const storedAuthInfo = authStore[uid] || null;
 
       printers.set(uid, {
         uid,
@@ -247,13 +269,22 @@ function main() {
         ip,
         printerInfo,
         printer: null,
-        authInfo: null,
+        authInfo: storedAuthInfo,
         state: stateEnum.Unauthenticated,
         lastFrameBase64: null,
         cameraEncoding: 'base64'
       });
 
-      return printers.get(uid);
+      const entry = printers.get(uid);
+
+      if (!storedAuthInfo) {
+        return entry;
+      }
+
+      return authenticate(uid, 'reauth').catch(() => {
+        entry.state = stateEnum.Unauthenticated;
+        return entry;
+      });
     });
   }
 
@@ -272,12 +303,22 @@ function main() {
       .then(connectResult => {
         const normalized = normalizeConnectResult(connectResult);
         entry.printer = normalized.printer;
-        if (normalized.authInfo) entry.authInfo = normalized.authInfo;
+        if (normalized.authInfo) {
+          entry.authInfo = normalized.authInfo;
+          authStore[uid] = normalized.authInfo;
+          writeAuthStore(authStore);
+        }
 
         setState(uid, stateEnum.Idle);
         return entry;
       })
       .catch(err => {
+        const msg = String(err && err.message || err || '');
+        if (msg.includes('UnauthorizedError') || msg.includes('AuthRejectedError')) {
+          delete authStore[uid];
+          writeAuthStore(authStore);
+          entry.authInfo = null;
+        }
         setState(uid, stateEnum.Unauthenticated);
         throw mapAuthError(err);
       });
@@ -395,6 +436,10 @@ function main() {
           authContext: {
             username: FINDER_USERNAME,
             hasClientSecret: !!FINDER_CLIENT_SECRET
+          },
+          persistence: {
+            authStorePath: AUTH_STORE_PATH,
+            authEntries: Object.keys(authStore).length
           }
         });
         return;
