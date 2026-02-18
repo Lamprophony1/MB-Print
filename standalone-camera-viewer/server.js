@@ -121,7 +121,7 @@ function loadCroissant() {
 }
 
 
-async function main() {
+function main() {
   let finder = null;
 
   function getFinder() {
@@ -158,57 +158,57 @@ async function main() {
     });
   }
 
-  async function connectByIp(ip) {
-    if (!ip) throw new Error('ip is required');
+  function connectByIp(ip) {
+    if (!ip) return Promise.reject(new Error('ip is required'));
 
-    const printerInfo = await getFinder().findByIp(ip);
-    const uid = printerInfo.uid;
+    return Promise.resolve(getFinder().findByIp(ip)).then(printerInfo => {
+      const uid = printerInfo.uid;
 
-    printers.set(uid, {
-      uid,
-      name: printerInfo.name,
-      ip,
-      printerInfo,
-      printer: null,
-      authInfo: null,
-      state: stateEnum.Unauthenticated,
-      lastFrameBase64: null,
-      cameraEncoding: 'base64'
+      printers.set(uid, {
+        uid,
+        name: printerInfo.name,
+        ip,
+        printerInfo,
+        printer: null,
+        authInfo: null,
+        state: stateEnum.Unauthenticated,
+        lastFrameBase64: null,
+        cameraEncoding: 'base64'
+      });
+
+      return printers.get(uid);
     });
-
-    return printers.get(uid);
   }
 
-  async function authenticate(uid, mode = 'connect') {
+  function authenticate(uid, mode) {
+    const resolvedMode = mode || 'connect';
     const entry = getEntryOrThrow(uid);
 
     setState(uid, stateEnum.Authenticating);
 
-    let connectResult;
+    const connectPromise = resolvedMode === 'reauth'
+      ? (entry.authInfo ? getFinder().reconnectPrinter(entry.printerInfo, entry.authInfo) : getFinder().reconnectPrinter(entry.printerInfo))
+      : getFinder().connectPrinter(entry.printerInfo);
 
-    if (mode === 'reauth') {
-      connectResult = entry.authInfo ? await getFinder().reconnectPrinter(entry.printerInfo, entry.authInfo) : await getFinder().reconnectPrinter(entry.printerInfo);
-    } else {
-      connectResult = await getFinder().connectPrinter(entry.printerInfo);
-    }
+    return Promise.resolve(connectPromise).then(connectResult => {
+      const normalized = normalizeConnectResult(connectResult);
+      entry.printer = normalized.printer;
+      if (normalized.authInfo) entry.authInfo = normalized.authInfo;
 
-    const normalized = normalizeConnectResult(connectResult);
-    entry.printer = normalized.printer;
-    if (normalized.authInfo) entry.authInfo = normalized.authInfo;
-
-    setState(uid, stateEnum.Idle);
-
-    return entry;
+      setState(uid, stateEnum.Idle);
+      return entry;
+    });
   }
 
-  async function startCamera(uid, encoding = 'base64') {
+  function startCamera(uid, encoding) {
+    const resolvedEncoding = encoding || 'base64';
     const entry = getEntryOrThrow(uid);
 
     if (!entry.printer) {
-      throw new Error('Printer is not authenticated yet. Call /api/authenticate first.');
+      return Promise.reject(new Error('Printer is not authenticated yet. Call /api/authenticate first.'));
     }
 
-    entry.cameraEncoding = encoding === 'binary' ? 'binary' : 'base64';
+    entry.cameraEncoding = resolvedEncoding === 'binary' ? 'binary' : 'base64';
 
     entry.printer.setCameraFrameNotification(frame => {
       const buf = toBuffer(frame);
@@ -225,25 +225,24 @@ async function main() {
       broadcastFrame(uid, payload);
     });
 
-    await entry.printer.RequestCameraStream();
-
-    return {
+    return Promise.resolve(entry.printer.RequestCameraStream()).then(() => ({
       uid,
       active: true,
       encoding: entry.cameraEncoding
-    };
+    }));
   }
 
-  async function stopCamera(uid) {
+  function stopCamera(uid) {
     const entry = getEntryOrThrow(uid);
-    if (!entry.printer) throw new Error('Printer is not authenticated');
+    if (!entry.printer) return Promise.reject(new Error('Printer is not authenticated'));
 
-    await entry.printer.EndCameraStream();
-    if (typeof entry.printer.unsetCameraFrameNotification === 'function') {
-      entry.printer.unsetCameraFrameNotification();
-    }
+    return Promise.resolve(entry.printer.EndCameraStream()).then(() => {
+      if (typeof entry.printer.unsetCameraFrameNotification === 'function') {
+        entry.printer.unsetCameraFrameNotification();
+      }
 
-    return { uid, active: false };
+      return { uid, active: false };
+    });
   }
 
   function routeStatic(req, res) {
@@ -275,7 +274,13 @@ async function main() {
     return true;
   }
 
-  const server = http.createServer(async (req, res) => {
+  const server = http.createServer((req, res) => {
+    const fail = err => {
+      sendJson(res, 500, {
+        error: err && err.message ? err.message : String(err)
+      });
+    };
+
     try {
 
       if (req.method === 'OPTIONS') {
@@ -304,39 +309,39 @@ async function main() {
       }
 
       if (req.method === 'POST' && req.url === '/api/connectByIp') {
-        const { ip } = await readJsonBody(req);
-        const entry = await connectByIp(ip);
-        sendJson(res, 200, {
-          uid: entry.uid,
-          name: entry.name,
-          ip: entry.ip,
-          state: entry.state
-        });
+        readJsonBody(req).then(body => connectByIp(body.ip)).then(entry => {
+          sendJson(res, 200, {
+            uid: entry.uid,
+            name: entry.name,
+            ip: entry.ip,
+            state: entry.state
+          });
+        }).catch(fail);
         return;
       }
 
       if (req.method === 'POST' && req.url === '/api/authenticate') {
-        const { uid, mode } = await readJsonBody(req);
-        const entry = await authenticate(uid, mode || 'connect');
-        sendJson(res, 200, {
-          uid: entry.uid,
-          state: entry.state,
-          hasAuthInfo: !!entry.authInfo
-        });
+        readJsonBody(req).then(body => authenticate(body.uid, body.mode || 'connect')).then(entry => {
+          sendJson(res, 200, {
+            uid: entry.uid,
+            state: entry.state,
+            hasAuthInfo: !!entry.authInfo
+          });
+        }).catch(fail);
         return;
       }
 
       if (req.method === 'POST' && req.url === '/api/startCamera') {
-        const { uid, encoding } = await readJsonBody(req);
-        const result = await startCamera(uid, encoding || 'base64');
-        sendJson(res, 200, result);
+        readJsonBody(req).then(body => startCamera(body.uid, body.encoding || 'base64')).then(result => {
+          sendJson(res, 200, result);
+        }).catch(fail);
         return;
       }
 
       if (req.method === 'POST' && req.url === '/api/stopCamera') {
-        const { uid } = await readJsonBody(req);
-        const result = await stopCamera(uid);
-        sendJson(res, 200, result);
+        readJsonBody(req).then(body => stopCamera(body.uid)).then(result => {
+          sendJson(res, 200, result);
+        }).catch(fail);
         return;
       }
 
@@ -390,9 +395,7 @@ async function main() {
 
       sendJson(res, 404, { error: 'Not found' });
     } catch (err) {
-      sendJson(res, 500, {
-        error: err.message
-      });
+      fail(err);
     }
   });
 
@@ -401,7 +404,9 @@ async function main() {
   });
 }
 
-main().catch(err => {
+try {
+  main();
+} catch (err) {
   console.error(err);
   process.exit(1);
-});
+}
