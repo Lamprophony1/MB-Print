@@ -7,7 +7,8 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "standalone:start": "node standalone-camera-viewer/server.js",
     "standalone:start:legacy-win": "npm --prefix standalone-camera-viewer run start:legacy-win",
-    "standalone:start:legacy-unix": "npm --prefix standalone-camera-viewer run start:legacy-unix"
+    "standalone:start:legacy-unix": "npm --prefix standalone-camera-viewer run start:legacy-unix",
+    "standalone:start:makerbot-win": "npm --prefix standalone-camera-viewer run start:makerbot-win"
   },
   "keywords": [],
   "author": "",

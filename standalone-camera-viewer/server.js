@@ -112,6 +112,8 @@ function loadCroissant() {
 `
         + `porque eso duplica la ruta y falla con MODULE_NOT_FOUND.
 `
+        + `Si sigue fallando por Expected X / got Y, en Windows usá: npm run start:makerbot-win
+`
         + `Detalle original: ${msg}`
       );
     }

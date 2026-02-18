@@ -51,6 +51,22 @@ Abrir en navegador:
 
 - `http://127.0.0.1:6060`
 
+
+### Opción recomendada en Windows (evita mismatch ABI)
+
+Ejecutar con el runtime del MakerBot instalado:
+
+```bash
+npm run start:makerbot-win
+```
+
+Si `makerbot-print.exe` está en otra ruta:
+
+```powershell
+$env:MAKERBOT_EXE='D:\Apps\MakerBotPrint\makerbot-print.exe'
+npm run start:makerbot-win
+```
+
 ## API HTTP
 
 - `GET /api/health`
@@ -137,6 +153,17 @@ significa que estás ejecutando con un Node moderno y el binario nativo de Crois
    - Para Croissant ABI viejo necesitás runtime compatible con `48`.
 
 > Nota: esto mantiene la app independiente; no hace falta reemplazar DLL/EXE de MakerBot.
+
+
+Si aparece `Module version mismatch. Expected 50, got 49`, entonces el runtime actual no coincide exactamente con el binario nativo de tu instalación.
+En Windows, usá preferentemente:
+
+```bash
+npm run start:makerbot-win
+```
+
+(o desde root: `npm --prefix standalone-camera-viewer run start:makerbot-win`).
+
 
 
 ### Error de ruta común
