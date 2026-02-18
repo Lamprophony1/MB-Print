@@ -134,6 +134,20 @@ npm run start:makerbot-win
 
 Podés verificarlo en `GET /api/health` en el campo `authContext.username`.
 
+
+## Error específico: `AuthRejectedError`
+
+Si ves `ERROR authenticate: croissant.AuthRejectedError`:
+
+1. Hacé `Connect`.
+2. Presioná `Authenticate`.
+3. Aceptá la autorización en la pantalla de la impresora.
+4. Si no aparece prompt, repetí `Connect` y luego `Authenticate`.
+
+Notas:
+- El estado puede volver a `Unauthenticated` cuando la auth es rechazada/timeout.
+- Si ya hubo una auth exitosa, el server intenta `reauth` automáticamente cuando hay `authInfo` guardado.
+
 ## Error específico: `NODE_MODULE_VERSION 48` vs `137`
 
 Si ves este error:

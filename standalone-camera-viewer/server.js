@@ -114,6 +114,25 @@ function normalizeConnectResult(connectResult) {
   };
 }
 
+
+function mapAuthError(err) {
+  const msg = String(err && err.message || err || '');
+
+  if (msg.includes('AuthRejectedError')) {
+    return new Error('AuthRejectedError: la impresora rechazó la autenticación. Aceptá la solicitud en la pantalla de la impresora y reintentá Authenticate. Si no aparece el prompt, hacé Connect nuevamente y volvé a Authenticate.');
+  }
+
+  if (msg.includes('UnauthorizedError')) {
+    return new Error('UnauthorizedError: credenciales guardadas inválidas o usuario no autorizado. Probá Authenticate de nuevo (button auth) o reconectar por IP.');
+  }
+
+  if (msg.includes('AuthTimedOutError')) {
+    return new Error('AuthTimedOutError: timeout esperando autorización en impresora. Reintentá y confirmá en pantalla del equipo.');
+  }
+
+  return err;
+}
+
 function toBuffer(frame) {
   if (Buffer.isBuffer(frame)) return frame;
   if (frame instanceof Uint8Array) return Buffer.from(frame);
@@ -239,7 +258,7 @@ function main() {
   }
 
   function authenticate(uid, mode) {
-    const resolvedMode = mode || 'connect';
+    const resolvedMode = mode || (getEntryOrThrow(uid).authInfo ? 'reauth' : 'connect');
     const entry = getEntryOrThrow(uid);
 
     setState(uid, stateEnum.Authenticating);
@@ -257,6 +276,10 @@ function main() {
 
         setState(uid, stateEnum.Idle);
         return entry;
+      })
+      .catch(err => {
+        setState(uid, stateEnum.Unauthenticated);
+        throw mapAuthError(err);
       });
   }
 
