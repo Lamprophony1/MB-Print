@@ -64,6 +64,15 @@ function looksLikePrinter(candidate) {
     || typeof candidate.EndCameraStream === 'function';
 }
 
+
+function resolveConnectResult(rawConnectResult) {
+  if (Array.isArray(rawConnectResult)) {
+    return Promise.all(rawConnectResult.map(item => Promise.resolve(item)));
+  }
+
+  return Promise.resolve(rawConnectResult);
+}
+
 function normalizeConnectResult(connectResult) {
   if (Array.isArray(connectResult)) {
     const first = connectResult[0] || null;
@@ -239,14 +248,16 @@ function main() {
       ? (entry.authInfo ? getFinder().reconnectPrinter(entry.printerInfo, entry.authInfo) : getFinder().reconnectPrinter(entry.printerInfo))
       : getFinder().connectPrinter(entry.printerInfo);
 
-    return Promise.resolve(connectPromise).then(connectResult => {
-      const normalized = normalizeConnectResult(connectResult);
-      entry.printer = normalized.printer;
-      if (normalized.authInfo) entry.authInfo = normalized.authInfo;
+    return Promise.resolve(connectPromise)
+      .then(resolveConnectResult)
+      .then(connectResult => {
+        const normalized = normalizeConnectResult(connectResult);
+        entry.printer = normalized.printer;
+        if (normalized.authInfo) entry.authInfo = normalized.authInfo;
 
-      setState(uid, stateEnum.Idle);
-      return entry;
-    });
+        setState(uid, stateEnum.Idle);
+        return entry;
+      });
   }
 
   function startCamera(uid, encoding) {
