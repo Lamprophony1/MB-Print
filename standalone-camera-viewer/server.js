@@ -80,13 +80,38 @@ function toBuffer(frame) {
 }
 
 function loadCroissant() {
-  const croissant = require(CROISSANT_MODULE_PATH);
-  if (!croissant || typeof croissant.PrinterFinder !== 'function') {
-    throw new Error(`Croissant module at ${CROISSANT_MODULE_PATH} does not export PrinterFinder`);
-  }
+  try {
+    const croissant = require(CROISSANT_MODULE_PATH);
+    if (!croissant || typeof croissant.PrinterFinder !== 'function') {
+      throw new Error(`Croissant module at ${CROISSANT_MODULE_PATH} does not export PrinterFinder`);
+    }
 
-  return croissant;
+    return croissant;
+  } catch (err) {
+    const msg = String(err && err.message || err || 'Unknown error');
+
+    if (msg.includes('NODE_MODULE_VERSION')) {
+      throw new Error(
+        `Croissant native module ABI mismatch. Tu runtime Node no coincide con el binario croissantjs.node.
+`
+        + `Usá el runtime legacy (NODE_MODULE_VERSION 48) con:
+`
+        + `  1) cd standalone-camera-viewer
+`
+        + `  2) npm install
+`
+        + `  3) npm run start:legacy-win (Windows)
+`
+        + `     o npm run start:legacy-unix (Linux/macOS)
+`
+        + `Detalle original: ${msg}`
+      );
+    }
+
+    throw err;
+  }
 }
+
 
 async function main() {
   let finder = null;

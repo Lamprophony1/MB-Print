@@ -84,3 +84,39 @@ $env:HOST='0.0.0.0'
 $env:PORT='6060'
 node .\standalone-camera-viewer\server.js
 ```
+
+
+## Error específico: `NODE_MODULE_VERSION 48` vs `137`
+
+Si ves este error:
+
+- `croissantjs.node was compiled against NODE_MODULE_VERSION 48`
+- `This version of Node.js requires NODE_MODULE_VERSION 137`
+
+significa que estás ejecutando con un Node moderno y el binario nativo de Croissant fue compilado para runtime viejo (ABI 48).
+
+### Solución práctica (sin tocar MakerBot instalado)
+
+1. Entrá a la carpeta standalone:
+   ```bash
+   cd standalone-camera-viewer
+   ```
+2. Instalá dependencias (descarga Electron legacy):
+   ```bash
+   npm install
+   ```
+3. Ejecutá con runtime legacy:
+
+   **Windows (PowerShell/cmd):**
+   ```bash
+   npm run start:legacy-win
+   ```
+
+   **Linux/macOS:**
+   ```bash
+   npm run start:legacy-unix
+   ```
+
+4. En navegador abrí `http://127.0.0.1:6060` y corré primero **Health check**.
+
+> Nota: esto mantiene la app independiente; no hace falta reemplazar DLL/EXE de MakerBot.
