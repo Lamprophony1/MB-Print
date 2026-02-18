@@ -1,0 +1,15 @@
+{
+  "name": "standalone-camera-viewer",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Standalone real-camera viewer using MakerBot Croissant",
+  "scripts": {
+    "start": "node server.js",
+    "start:legacy-win": "set ELECTRON_RUN_AS_NODE=1&& .\\node_modules\\.bin\\electron.cmd server.js",
+    "start:legacy-unix": "ELECTRON_RUN_AS_NODE=1 ./node_modules/.bin/electron server.js",
+    "start:makerbot-win": "node launch-makerbot-runtime.js"
+  },
+  "devDependencies": {
+    "electron": "1.4.16"
+  }
+}
