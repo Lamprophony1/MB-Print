@@ -7,6 +7,8 @@ const fs = require('fs');
 const PORT = Number(process.env.PORT || 6060);
 const HOST = process.env.HOST || '127.0.0.1';
 const CROISSANT_MODULE_PATH = process.env.CROISSANT_MODULE_PATH || path.resolve(__dirname, '..', 'resources', 'app.asar.unpacked', 'node_modules', 'MB-support-plugin', 'lib', 'croissant.js');
+const FINDER_USERNAME = process.env.FINDER_USERNAME || 'ANON';
+const FINDER_CLIENT_SECRET = process.env.FINDER_CLIENT_SECRET || null;
 
 const stateEnum = {
   Offline: 'Offline',
@@ -130,6 +132,14 @@ function main() {
     if (!finder) {
       const croissant = loadCroissant();
       finder = new croissant.PrinterFinder();
+
+      if (FINDER_CLIENT_SECRET && typeof finder.setClientSecret === 'function') {
+        finder.setClientSecret(FINDER_CLIENT_SECRET);
+      }
+
+      if (typeof finder.setUsernameOnly === 'function') {
+        finder.setUsernameOnly(FINDER_USERNAME);
+      }
     }
 
     return finder;
@@ -305,6 +315,10 @@ function main() {
             node: process.versions.node,
             modules: process.versions.modules,
             electron: process.versions.electron || null
+          },
+          authContext: {
+            username: FINDER_USERNAME,
+            hasClientSecret: !!FINDER_CLIENT_SECRET
           }
         });
         return;

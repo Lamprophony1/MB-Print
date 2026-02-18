@@ -20,6 +20,8 @@ Esta app es **independiente**. No modifica `MB-support-plugin` ni requiere copia
 - `PORT` (default `6060`)
 - `HOST` (default `127.0.0.1`)
 - `CROISSANT_MODULE_PATH` (ruta al `croissant.js` real)
+- `FINDER_USERNAME` (default `ANON`; requerido por el flujo de auth nuevo)
+- `FINDER_CLIENT_SECRET` (opcional; si tu flujo lo necesita)
 
 Si no se define `CROISSANT_MODULE_PATH`, usa por defecto el del repo:
 
@@ -109,6 +111,20 @@ $env:PORT='6060'
 node .\standalone-camera-viewer\server.js
 ```
 
+
+
+## Error específico: `Username not set`
+
+Si en UI aparece `ERROR authenticate: Username not set`, el finder no recibió usuario para auth.
+
+Ejemplo Windows (PowerShell):
+
+```powershell
+$env:FINDER_USERNAME='tu_usuario_o_alias'
+npm run start:makerbot-win
+```
+
+Podés verificarlo en `GET /api/health` en el campo `authContext.username`.
 
 ## Error específico: `NODE_MODULE_VERSION 48` vs `137`
 
