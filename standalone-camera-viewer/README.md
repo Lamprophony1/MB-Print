@@ -115,7 +115,7 @@ npm --prefix standalone-camera-viewer run start:bundle-win
 
 ## API HTTP
 
-- `GET /api/health`
+- `GET /api/health` (incluye `croissantModulePath` y `croissantModuleExists`)
 - `POST /api/connectByIp` body `{ "ip": "192.168.1.30" }`
 - `POST /api/authenticate` body `{ "uid": "...", "mode": "connect|reauth" }`
 - `POST /api/startCamera` body `{ "uid": "...", "encoding": "base64|binary" }`
@@ -129,6 +129,29 @@ npm --prefix standalone-camera-viewer run start:bundle-win
 - Esta app está diseñada para experimentar con ingeniería inversa de forma aislada.
 - Si tu instalación de MakerBot quedó dañada (0xc000012f), primero reinstalá limpio y no vuelvas a copiar binarios (`node.dll`, `ffmpeg.dll`, `.exe`) desde este repo.
 
+
+
+### Equipo nuevo limpio: error "Cannot find module ... croissant.js"
+
+En equipo nuevo, si ves:
+
+- `ERROR connect: Cannot find module ... croissant.js`
+
+significa que no está copiado el runtime embebido.
+
+Solución rápida en el equipo origen (donde sí está MakerBot instalado):
+
+```bash
+npm --prefix standalone-camera-viewer run vendor:runtime-win
+```
+
+Luego copiá la carpeta `standalone-camera-viewer/` completa al equipo destino y ejecutá:
+
+```bash
+npm --prefix standalone-camera-viewer run start:bundle-win
+```
+
+Tip: verificá `GET /api/health` y confirmá `croissantModuleExists: true`.
 
 ## Troubleshooting: "ERROR ... Failed to fetch"
 

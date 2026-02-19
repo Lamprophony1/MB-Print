@@ -11,6 +11,8 @@ const makerbotExe = process.env.MAKERBOT_EXE
   || (fs.existsSync(bundledExe) ? bundledExe : installedExe);
 const serverPath = path.resolve(__dirname, 'server.js');
 
+const candidateCroissantFromExe = path.resolve(path.dirname(makerbotExe), 'resources', 'app.asar.unpacked', 'node_modules', 'MB-support-plugin', 'lib', 'croissant.js');
+
 if (!fs.existsSync(makerbotExe)) {
   console.error('[standalone-camera-viewer] No se encontró makerbot-print.exe.');
   console.error(`  buscado: ${makerbotExe}`);
@@ -21,7 +23,8 @@ if (!fs.existsSync(makerbotExe)) {
 }
 
 const env = Object.assign({}, process.env, {
-  ELECTRON_RUN_AS_NODE: '1'
+  ELECTRON_RUN_AS_NODE: '1',
+  CROISSANT_MODULE_PATH: process.env.CROISSANT_MODULE_PATH || candidateCroissantFromExe
 });
 
 const child = cp.spawn(makerbotExe, [serverPath], {

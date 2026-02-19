@@ -6,7 +6,22 @@ const fs = require('fs');
 
 const PORT = Number(process.env.PORT || 6060);
 const HOST = process.env.HOST || '127.0.0.1';
-const CROISSANT_MODULE_PATH = process.env.CROISSANT_MODULE_PATH || path.resolve(__dirname, '..', 'resources', 'app.asar.unpacked', 'node_modules', 'MB-support-plugin', 'lib', 'croissant.js');
+
+function resolveDefaultCroissantPath() {
+  const candidates = [
+    path.resolve(__dirname, 'runtime', 'makerbot-print', 'resources', 'app.asar.unpacked', 'node_modules', 'MB-support-plugin', 'lib', 'croissant.js'),
+    path.resolve(__dirname, '..', 'resources', 'app.asar.unpacked', 'node_modules', 'MB-support-plugin', 'lib', 'croissant.js'),
+    'C:\\Program Files\\MakerBot\\MakerBotPrint\\resources\\app.asar.unpacked\\node_modules\\MB-support-plugin\\lib\\croissant.js'
+  ];
+
+  for (let i = 0; i < candidates.length; i++) {
+    if (fs.existsSync(candidates[i])) return candidates[i];
+  }
+
+  return candidates[0];
+}
+
+const CROISSANT_MODULE_PATH = process.env.CROISSANT_MODULE_PATH || resolveDefaultCroissantPath();
 const FINDER_USERNAME = process.env.FINDER_USERNAME || 'ANON';
 // Same public client secret used by MB-support-plugin Thingiverse auth flow
 const DEFAULT_FINDER_CLIENT_SECRET = 'c30f532bcc67bb65d3476daedc0e60f4';
@@ -203,6 +218,10 @@ function loadCroissant() {
 `
         + `Detalle original: ${msg}`
       );
+    }
+
+    if (msg.includes('Cannot find module')) {
+      throw new Error(`Cannot find module for croissant at: ${CROISSANT_MODULE_PATH}. Si estás en equipo limpio, ejecutá primero: npm --prefix standalone-camera-viewer run vendor:runtime-win`);
     }
 
     throw err;
@@ -428,6 +447,7 @@ function main() {
         sendJson(res, 200, {
           ok: true,
           croissantModulePath: CROISSANT_MODULE_PATH,
+          croissantModuleExists: fs.existsSync(CROISSANT_MODULE_PATH),
           runtime: {
             node: process.versions.node,
             modules: process.versions.modules,
