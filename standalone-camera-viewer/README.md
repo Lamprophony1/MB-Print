@@ -71,6 +71,48 @@ $env:MAKERBOT_EXE='D:\Apps\MakerBotPrint\makerbot-print.exe'
 npm run start:makerbot-win
 ```
 
+
+## Modo portátil (sin instalar MakerBot Print en otro equipo)
+
+Sí, se puede hacer una solución práctica rápida: **copiar runtime local** dentro de `standalone-camera-viewer/runtime/makerbot-print` y ejecutar desde ahí.
+
+### 1) En tu equipo origen (donde ya funciona)
+
+Desde root del repo:
+
+```bash
+npm --prefix standalone-camera-viewer run vendor:runtime-win
+```
+
+Esto copia la instalación local de MakerBot Print a:
+
+- `standalone-camera-viewer/runtime/makerbot-print`
+
+(omitiendo caches/carpetas temporales).
+
+### 2) Probar localmente con runtime empaquetado
+
+```bash
+npm --prefix standalone-camera-viewer run start:bundle-win
+```
+
+### 3) Llevar a otro equipo
+
+Copiá estas carpetas/archivos:
+- `standalone-camera-viewer/`
+- (opcional) `.auth-store.json` si querés migrar sesiones
+
+En el equipo destino ejecutá:
+
+```bash
+npm --prefix standalone-camera-viewer run start:bundle-win
+```
+
+### Notas importantes
+- Sigue siendo dependiente de binarios nativos de MakerBot (solo que ahora van embebidos en tu carpeta standalone).
+- Podría requerir runtimes de Windows (VC++) según el equipo destino.
+- Revisá licencias/permisos antes de redistribuir binarios fuera de tu entorno interno.
+
 ## API HTTP
 
 - `GET /api/health`

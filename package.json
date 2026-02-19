@@ -8,7 +8,9 @@
     "standalone:start": "node standalone-camera-viewer/server.js",
     "standalone:start:legacy-win": "npm --prefix standalone-camera-viewer run start:legacy-win",
     "standalone:start:legacy-unix": "npm --prefix standalone-camera-viewer run start:legacy-unix",
-    "standalone:start:makerbot-win": "npm --prefix standalone-camera-viewer run start:makerbot-win"
+    "standalone:start:makerbot-win": "npm --prefix standalone-camera-viewer run start:makerbot-win",
+    "standalone:vendor:runtime-win": "npm --prefix standalone-camera-viewer run vendor:runtime-win",
+    "standalone:start:bundle-win": "npm --prefix standalone-camera-viewer run start:bundle-win"
   },
   "keywords": [],
   "author": "",

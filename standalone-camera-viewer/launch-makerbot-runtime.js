@@ -4,14 +4,19 @@ const path = require('path');
 const fs = require('fs');
 const cp = require('child_process');
 
-const defaultExe = 'C:\\Program Files\\MakerBot\\MakerBotPrint\\makerbot-print.exe';
-const makerbotExe = process.env.MAKERBOT_EXE || defaultExe;
+const bundledExe = path.resolve(__dirname, 'runtime', 'makerbot-print', 'makerbot-print.exe');
+const installedExe = 'C:\\Program Files\\MakerBot\\MakerBotPrint\\makerbot-print.exe';
+
+const makerbotExe = process.env.MAKERBOT_EXE
+  || (fs.existsSync(bundledExe) ? bundledExe : installedExe);
 const serverPath = path.resolve(__dirname, 'server.js');
 
 if (!fs.existsSync(makerbotExe)) {
-  console.error('[standalone-camera-viewer] No se encontró makerbot-print.exe en:');
-  console.error(`  ${makerbotExe}`);
-  console.error('Seteá MAKERBOT_EXE con la ruta correcta y reintentá.');
+  console.error('[standalone-camera-viewer] No se encontró makerbot-print.exe.');
+  console.error(`  buscado: ${makerbotExe}`);
+  console.error(`  bundled esperado: ${bundledExe}`);
+  console.error(`  instalación esperada: ${installedExe}`);
+  console.error('Seteá MAKERBOT_EXE o ejecutá npm run vendor:runtime-win para empaquetar runtime local.');
   process.exit(1);
 }
 
